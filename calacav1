@@ -1,0 +1,198 @@
+/*Codigo de prueba para proyecto de Hallowween del grupo Makers Guaymas 
+ * 
+ * El codigo prueba la integracion de un sensor ultrasonico y un sensor PIR para detectar si existe una prescencia, 
+ * y ademas saber a que distancia se encuentra, basado en eso hay un neopixel que cambia de color dependiendo de la distancia.
+ * 
+ * Alexander Hofflich 10/20/15
+ */
+
+ //Lo primero que hay que hace es importar nuestras librerias
+
+#include <Adafruit_NeoPixel.h>
+#include <NewPing.h>
+#include <Servo.h>
+
+//***************************************
+//Luego declaramos los pines que contendran nuestros sensores
+
+#define pirPin 3    //Conectamos el sensor PIR a nuestro D3
+
+#define TRIGGER_PIN  4  // Esto es que esta conectado al pin D4 y al  pin Trigger del sensor ultrasonico, que se encarga de activar el sensor
+#define ECHO_PIN     5  // Esto es que esta conectado al pin D5 y al  pin Echo del sensor ultrasonico, que se encarga de recibir las ondas de regreso
+
+#define PIN 6   // Conecgtamos nuestro NEOPIXEL al D6
+
+#define SERVO_PIN 7 //Conectamos nuestro servo al D9 de nuestro arduino
+
+//****************************************
+
+//Despues definimos parametros de control para nuestros sensores
+//PIR (Passive infrarojo Resistor)
+int TiempoCalibracion = 10;  //Tiempo de calibracion para el sensor de 10 a 60 seg segun datasheet  
+long unsigned int lowIn;     // El tiempo cuando el sensor emite un pulso LOW     
+long unsigned int pause = 5000;  //Tiempo de espera antes de hacer una pausa, ya que todo el movimiento ceso
+boolean lockLow = true;
+boolean takeLowTime;  
+
+//ULTRASONICO
+#define MAX_DISTANCE 400 //Distancia maxima que queremos hacer ping (en centimetros). La distancia maxima del sensor esta entre 400-500cm.
+
+
+//NEOPIXEL
+#define NUMPIXELS 2  //La cantidad de NEOPIXELES a utilizar
+int delayval = 500; // delay for half a second
+//Colores RGB
+int rojo;
+int verde;
+int azul;
+int enojado;
+int enojadoMil;
+
+//SERVO
+int angulo = 0;  //Para el control de los pasos
+int contadorPalabras = 0;
+//****************************************
+
+//Por ultimo creamos los objetos a utilizar, en base a las librerias importadas sera, el sonar, los ojos y el motor
+
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // Damos de alta los pines y la distancia maxima
+
+//Creamos el objeto del ojo izquierdo
+Adafruit_NeoPixel leftEye = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+//Creamos el objeto del ojo derecho
+Adafruit_NeoPixel rightEye = Adafruit_NeoPixel(NUMPIXELS, PIN2, NEO_GRB + NEO_KHZ800);
+
+//El motor 
+Servo servo;
+
+
+void setup(){
+  
+  Serial.begin(9600);
+
+  //Inicializamos el sensor PIR como una entrada y decimos que esta "apagado"
+  pinMode(pirPin, INPUT);
+  digitalWrite(pirPin, LOW);
+
+  //Inicializamos los ojos
+  leftEye.begin(); 
+  rightEye.begin();
+
+  //Inicializamos el motor 
+  servo.attach(SERVO_PIN); 
+  
+  //Le vamos a dar un tiempo al sensor para que se calibre
+  Serial.print("Calibrando sensor");
+    for(int i = 0; i < TiempoCalibracion; i++){
+      Serial.print(".");
+      delay(1000);
+      }
+    Serial.println("Listo");
+    Serial.println("SENSOR ACTIVO");
+    delay(50);
+  }
+
+
+
+void loop(){
+
+     if(digitalRead(pirPin) == HIGH){
+
+       Serial.print ("Movimiento detectado a: ");
+       Serial.print(sonar.ping_cm());
+       Serial.println("cm");
+       delay(1000);
+       enojado = sonar.ping_cm();
+       enojadoMil = map(enojado,0,200,255,0);
+       // scan from 0 to 180 degrees
+       for(angulo = 20; angulo < 150; angulo++)  
+         {                                 
+           servo.write(angulo);               
+           delay(5); 
+           contadorPalabras++;                  
+         } 
+      // now scan back from 180 to 0 degrees
+      for(angulo = 150; angulo >20; angulo--)    
+        {                                
+          servo.write(angulo);           
+          delay(5);
+         
+        }
+
+      if(contadorPalabras >=5) {
+        angulo=0;
+        contadorPalabras = 0;
+      }
+       
+       if(lockLow){  
+         //makes sure we wait for a transition to LOW before any further output is made:
+         lockLow = false;            
+         Serial.println("---");
+         Serial.print("motion detected at ");
+         Serial.print(millis()/1000);
+         Serial.println(" sec"); 
+         delay(50);
+         }         
+         takeLowTime = true;
+       }
+
+     if(digitalRead(pirPin) == LOW){       
+
+
+       if(takeLowTime){
+        lowIn = millis();          //save the time of the transition from high to LOW
+        takeLowTime = false;       //make sure this is only done at the start of a LOW phase
+        }
+       //if the sensor is low for more than the given pause, 
+       //we assume that no more motion is going to happen
+       if(!lockLow && millis() - lowIn > pause){  
+           //makes sure this block of code is only executed again after 
+           //a new motion sequence has been detected
+           lockLow = true;                        
+           Serial.print("motion ended at ");      //output
+           Serial.print((millis() - pause)/1000);
+           Serial.println(" sec");
+           delay(50);
+           }
+       }
+
+       // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
+    for(int i = 0; i < 2; i++)
+    {
+      rojo = enojadoMil; //Le asignamos al color rojo el valor mapeado que obtenemos del FSR
+      
+      if(enojadoMil > 170 && enojadoMil < 210)
+      {
+        rojo = enojadoMil;
+        azul = 50;
+        verde = 50;
+      }
+      else if(enojadoMil > 210)
+      {
+        rojo = enojadoMil;
+        verde = 0;
+        azul = 0;
+      }
+      else if(enojadoMil > 25 &&  enojadoMil < 169)
+      {
+        rojo = enojadoMil;
+        verde = 100;
+        azul = 100;
+      }
+      else
+      {
+        rojo = 0;
+        verde = 0;  
+        azul = 255;
+
+      }
+      
+      leftEye.setPixelColor(0, leftEye.Color(rojo,verde,azul)); 
+      rightEye.setPixelColor(0, rightEye.Color(rojo,verde,azul)); 
+      leftEye.show(); // This sends the updated pixel color to the hardware.
+      rightEye.show(); // This sends the updated pixel color to the hardware.
+      
+      delay(delayval); // Delay for a period of time (in milliseconds).
+    }
+  }
