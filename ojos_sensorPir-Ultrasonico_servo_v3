@@ -1,0 +1,175 @@
+/*Codigo de prueba para proyecto de Hallowween del grupo Makers Guaymas 
+ * 
+ * El codigo prueba la integracion de un sensor ultrasonico y un sensor PIR para detectar si existe una prescencia, 
+ * y ademas saber a que distancia se encuentra, basado en eso hay un neopixel que cambia de color dependiendo de la distancia.
+ * 
+ * Alexander Hofflich 10/20/15
+ */
+
+ //Lo primero que hay que hace es importar nuestras librerias
+
+#include <Adafruit_NeoPixel.h>
+#include <NewPing.h>
+#include <Servo.h>
+
+//***************************************
+//Luego declaramos los pines que contendran nuestros sensores
+
+#define pirPin 3    //Conectamos el sensor PIR a nuestro D3
+
+#define TRIGGER_PIN  4  // Esto es que esta conectado al pin D4 y al  pin Trigger del sensor ultrasonico, que se encarga de activar el sensor
+#define ECHO_PIN     5  // Esto es que esta conectado al pin D5 y al  pin Echo del sensor ultrasonico, que se encarga de recibir las ondas de regreso
+
+#define PIN 6   // Conecgtamos nuestro NEOPIXEL al D6
+
+#define SERVO_PIN 9 //Conectamos nuestro servo al D9 de nuestro arduino
+
+
+//****************************************
+
+//Despues definimos parametros de control para nuestros sensores
+//PIR (Passive infrarojo Resistor)
+int TiempoCalibracion = 10;  //Tiempo de calibracion para el sensor de 10 a 60 seg segun datasheet  
+long unsigned int lowIn;     // El tiempo cuando el sensor emite un pulso LOW     
+long unsigned int pause = 5000;  //Tiempo de espera antes de hacer una pausa, ya que todo el movimiento ceso
+boolean lockLow = true;
+boolean takeLowTime;  
+
+//ULTRASONICO
+#define MAX_DISTANCE 400 //Distancia maxima que queremos hacer ping (en centimetros). La distancia maxima del sensor esta entre 400-500cm.
+
+
+//NEOPIXEL
+#define NUMPIXELS 2  //La cantidad de NEOPIXELES a utilizar
+int delayval = 500; // delay for half a second
+//Colores RGB
+int rojo;
+int verde;
+int azul;
+int enojado;
+int enojadoMil;
+
+//SERVO
+int angulo = 0;  //Para el control de los pasos
+int contadorPalabras = 0;
+//****************************************
+
+int distancia = 0;
+
+//Por ultimo creamos los objetos a utilizar, en base a las librerias importadas sera, el sonar, los ojos y el motor
+
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // Damos de alta los pines y la distancia maxima
+
+//Creamos el objeto del ojo izquierdo
+Adafruit_NeoPixel leftEye = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+//El motor 
+Servo servo;
+
+void setup() {
+  // put your setup code here, to run once:
+    Serial.begin(9600);
+
+  //Inicializamos el sensor PIR como una entrada y decimos que esta "apagado"
+  pinMode(pirPin, INPUT);
+  digitalWrite(pirPin, LOW);
+
+  //Inicializamos los ojos
+  leftEye.begin(); 
+
+
+  //Inicializamos el motor 
+  servo.attach(SERVO_PIN); 
+  
+  //Le vamos a dar un tiempo al sensor para que se calibre
+  Serial.print("Calibrando sensor");
+    for(int i = 0; i < TiempoCalibracion; i++){
+      Serial.print(".");
+      delay(1000);
+      }
+    Serial.println("Listo");
+    Serial.println("SENSOR ACTIVO");
+    delay(50);
+}
+
+void loop() {
+  if(digitalRead(pirPin) == HIGH){
+
+       Serial.print ("Movimiento detectado a: ");
+       distancia = sonar.ping_cm();
+       Serial.print(distancia);
+       Serial.println("cm");
+       delay(100);
+       enojado = sonar.ping_cm();
+       enojadoMil = map(enojado,0,400,255,0);
+       // scan from 0 to 180 degrees
+      // now scan back from 180 to 0 degrees
+     
+       if(lockLow){  
+         //makes sure we wait for a transition to LOW before any further output is made:
+         lockLow = false;            
+         }         
+         takeLowTime = true;
+       }      
+
+       // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
+ 
+      rojo = enojadoMil; //Le asignamos al color rojo el valor mapeado que obtenemos del FSR
+     
+      if(distancia < 20)
+      {
+        rojo = enojadoMil;
+        azul = 0;
+        verde = 0;
+        gritar();
+      }
+     
+      else if(distancia > 20 && distancia < 40)
+      {
+        /*
+        rojo = 240;
+        verde = 144;  
+        azul = 8;
+        */
+        rojo = 0;
+        verde = 255;
+        azul = 0;
+        hablar();
+       // Serial.println("Color azul");
+      }
+      else if(distancia > 40)
+      {
+        /*
+        rojo = 235;
+        verde = 247;  
+        azul = 7; 
+        */
+        rojo = 0;
+        verde = 0;
+        azul = 255;
+
+      }
+      
+      for(int i = 0; i < NUMPIXELS; i++)
+      {      
+        leftEye.setPixelColor(i, leftEye.Color(rojo,verde,azul)); 
+       
+        leftEye.show(); // This sends the updated pixel color to the hardware.
+      
+      }
+}
+
+void hablar()
+{  
+  servo.write(5);
+  delay(300);
+  servo.write(45);
+  delay(300);
+}
+void gritar()
+{
+  servo.write(5);
+  delay(700);
+  servo.write(90);
+  delay(700);
+}
