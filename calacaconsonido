@@ -1,0 +1,90 @@
+#include <SoftwareSerial.h>
+#include <MP3.h>
+
+#define sensorPin 0
+/** define mp3 class */
+MP3 mp3;
+int sensorLuz;
+
+void setup()
+{
+  Serial.begin(9600);
+  /** begin function */
+  mp3.begin(MP3_SOFTWARE_SERIAL);    // select software serial
+//  mp3.begin();                       // select hardware serial(or mp3.begin(MP3_HARDWARE_SERIAL);)
+  
+  /** set volum to the MAX */
+  //mp3.volume(0x14);
+  pinMode(sensorPin,INPUT);
+  
+  //mp3.play_usb_disk(0x0001);
+
+}
+
+void loop()
+{
+
+  sensorLuz = analogRead(sensorPin);
+  
+  
+
+  delay(200);
+  u8 probar;
+  /*
+    if(sensorLuz >=800 && sensorLuz<=900) {
+      mp3.play_usb_disk(0x0001);
+      sensorLuz = analogRead(sensorPin);
+      u8 sensorLuzMapAudio1 = map(sensorLuz, 800, 900, 0x1F,0x1);
+      mp3.volume(0x1F);
+      Serial.println("Reproduciendo Audio 1");
+    
+      Serial.print("Valor del sensor: ");
+      Serial.println(sensorLuz);
+      Serial.print("Valor del sensor mapeado a hexadecimales (Volumen):");
+      Serial.println(sensorLuzMapAudio1);
+      mp3.pause();
+      delay(10000);
+      mp3.pause();
+      mp3.stop();
+      
+    } else if (sensorLuz >= 500 && sensorLuz <=800) {
+      mp3.play_usb_disk(0x0002);
+      sensorLuz = analogRead(sensorPin);
+      u8 sensorLuzMapAudio2= map(sensorLuz, 500, 800, 0x1F,0x1);
+      mp3.volume(sensorLuzMapAudio2);
+      Serial.println("Reproduciendo Audio 2");
+      Serial.print("Valor del sensor: ");
+      Serial.println(sensorLuz);
+      Serial.print("Valor del sensor mapeado a hexadecimales: (Volumen)");
+      Serial.println(sensorLuzMapAudio2);
+      mp3.pause();
+      delay(10000);
+      mp3.pause();
+      mp3.stop();
+      
+    } else if (sensorLuz<=500) {
+      mp3.play_usb_disk(0x0003);
+      sensorLuz = analogRead(sensorPin);
+      u8 sensorLuzMapAudio3 = map(sensorLuz, 0, 500, 0x1F,0x1);
+      mp3.volume(sensorLuzMapAudio3);
+      Serial.println("Reproduciendo Audio 3");
+      Serial.print("Valor del sensor: ");
+      Serial.println(sensorLuz);
+      Serial.print("Valor del sensor mapeado a hexadecimales: (Volumen)");
+      Serial.println(sensorLuzMapAudio3);
+      //delay(10000);
+      mp3.stop();
+    } else {
+      Serial.println("No se detecta prescencia");
+      Serial.print("Valor del sensor: ");
+      Serial.println(sensorLuz);
+      mp3.stop();
+    }
+*/
+   if (Serial.available() > 0)
+   {
+    probar = Serial.read();
+    Serial.print(probar);
+   }
+  
+}
